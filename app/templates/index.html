@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+        <title>Contentful Demo App</title>
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">        
+        <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+        <style>
+            .ib {
+                border: solid red 1px;
+                display: inline-block;
+            }
+            div {
+                vertical-align: top;
+                padding: 0.1em;
+            }
+            .w30 {
+                width: 28%;
+                background: salmon;
+                float: right;
+            }
+            .w70 {
+                width: 68%;
+                background: lightslategray;
+                float: left;
+            }
+            h1 {
+                color: darkblue;
+            }
+            h2 {
+                color: darkgreen;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="app">
+            <cms-page :page="page" v-bind:key="page.sys.id"></cms-page>
+        </div>
+
+
+
+
+
+        <!-- CmsPage Template Begin -->
+        <script id="tpl_page">
+            <div>
+                <h1>{{ page.fields.userFacingTitle }}</h1>  
+                <cms-section v-for="section in sections" :section="section" v-bind:key="section.sys.id"></cms-section>
+            </div>
+        </script>
+        <!-- CmsPage Template End-->
+
+
+
+
+        <!-- Section Template Begin -->
+        <script id="tpl_section">
+            <div>
+                <!--<h2>{{ section.fields.userFacingTitle }}</h2>-->
+                <hr/>
+                <ul class="nav nav-tabs" id="articleTabs" v-if="section.fields.displayStyle=='Tabbed Articles'">
+                    <li class="nav-item" v-for="(article, index) in section.fields.contentItems">
+                        <a :class="{ 'nav-link': true, active:activeTab == index }" v-on:click="activeTab=index" :id="'article_tab_' + article.sys.id" :href="'#article_' + article.sys.id">
+                            {{article.fields.displayTitle}}
+                        </a>
+                    </li>
+                </ul>
+                <div :class="{'tab-content': section.fields.displayStyle=='Tabbed Articles'}">
+                    <cms-article v-for="(article, index) in section.fields.contentItems" :activeTab="activeTab" :displayStyle="section.fields.displayStyle" :index="index" :article="article" :key="article.sys.id"></cms-article>
+                </div>
+                <cms-aside v-for="aside in section.fields.asides" :aside="aside" :key="aside.sys.id"></cms-aside>
+            </div>                
+        </script>
+        <!-- Section Template End-->
+
+
+
+
+
+
+
+        <!-- Article Template Begin -->
+        <script id="tpl_article">
+            <div>
+                <div v-if="stacked" class="ib w70">
+                    <h3>{{ article.fields.userFacingTitle }}</h3>
+                    <div v-bind:key="article.sys.id">
+                        <div v-html="converter.makeHtml(article.fields.content)"></div>
+                    </div>
+                </div>
+                <div v-if="cards">
+                    <table style="width: 400px; border: solid 1px;">
+                        <tr style="background: lightslategray;">
+                            <th colspan="2"><h3>{{ article.fields.userFacingTitle }}</h3></th>
+                        </tr><br/>
+                        <tr>
+                            <td><img width="100px" height="100px" :src="'https://' + article.fields.thumbnail.fields.file.url"/></td>
+                            <td v-html="article.fields.summary"></td>
+                            <button v-on:click="showDetails = !showDetails">Show Full Article</button>
+                        </tr>
+                    </table>
+                    <!-- this div needs to be a modal -->
+                    <div v-if="showDetails" v-html="converter.makeHtml(article.fields.content)"></div>
+                </div>
+                <div v-if="tabbed" :id="'article_' + article.sys.id" :style="{ display: displayClass()}">
+                    <h3>{{ article.fields.userFacingTitle }}</h3>
+                    <div v-bind:key="article.sys.id">
+                        <div v-html="converter.makeHtml(article.fields.content)"></div>
+                    </div>
+                </div>
+            </div>
+        </script>
+        <!-- Article Template End-->
+
+
+
+
+        <!-- Aside Template Begin -->
+        <script id="tpl_aside">
+            <div class="ib w30">
+                <h3>{{ aside.fields.userFacingTitle }} </h3>
+                <div v-bind:key="aside.sys.id">
+                    <div v-html="converter.makeHtml(aside.fields.content)"></div>
+                </div>
+            </div>
+        </script>
+        <!-- Aside Template End-->
+
+
+
+
+
+
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/showdown/1.8.6/showdown.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/contentful@latest/dist/contentful.browser.min.js"></script>
+        <script src="https://unpkg.com/vue"></script>
+        
+        <script>
+        const client = contentful.createClient({
+            space: "[[space]]",
+            environment: "master",
+            accessToken: "[[token]]",
+            host: "preview.contentful.com"
+        });
+
+
+
+        Vue.component('cms-page', {
+            props: ['page'],
+            template: '#tpl_page',
+            data: function() {
+                return { sections: this.page.fields.sections } 
+            },
+            methods: {
+                
+            }
+        });
+
+
+
+        Vue.component('cms-section', {
+            props: ['section'],
+            template: '#tpl_section',
+            data: function() {
+                return { converter: new showdown.Converter(), activeTab: 0 }
+            },
+            computed: {
+                tabbed: function() {
+                    return this.article.displayStyle == "Tabbed Articles";
+                }
+            },
+            methods: {
+                
+            }
+        });
+
+        Vue.component('cms-article', {
+            props: ['article', 'index', 'displayStyle', 'activeTab'],
+            template: '#tpl_article',
+            data: function() {
+                return { converter: new showdown.Converter(), showDetails: false } 
+            },
+            computed: {
+                stacked: function() {
+                    return this.displayStyle == "Stacked Articles";
+                },
+                cards: function() {
+                    return this.displayStyle == "Card View";
+                },
+                tabbed: function() {
+                    return this.displayStyle == "Tabbed Articles";
+                }
+            },
+            methods: {
+                displayClass: function() {
+                    console.log('displayClass. this.index: ' + this.index + ', this.activeTab: ' + this.activeTab);
+                    return (this.index == this.activeTab) ? 'block' : 'none';
+                }
+            }
+        });
+
+
+
+
+        Vue.component('cms-aside', {
+            props: ['aside'],
+            template: '#tpl_aside',
+            data: function() {
+                return { converter: new showdown.Converter() }
+            },
+            methods: {
+            }
+        });
+
+
+
+
+
+
+
+
+
+
+
+        /*
+
+            !!!SET THE TEST DATA TARGET SLUG HERE!!!
+
+        */
+        var urlParams = new URLSearchParams(window.location.search);
+        var contentId = '1';
+        var slug = "university-writing";
+
+        if(urlParams.has('id')) { contentId = urlParams.get('id'); }
+        if(urlParams.has('slug')) { slug = urlParams.get('slug'); }
+
+        var query = {
+            "content_type": "pageTemplate",
+            // "fields.slug": "lorem-ipsum-" + contentId,
+            "fields.slug": slug,
+            "include": 10
+        };
+
+        var app = null;
+        var render_tpl = function(tpl_data) {
+             app = new Vue({el: '#app', 
+                            data: { page: tpl_data }
+                            });
+        };
+
+        // var page_template = null;
+        client.getEntries(query)
+            .then((response) => {
+                console.log(response.items);
+
+                // work sections into an array instead of mucking with solo vs array in tpl
+                var sections = response.items[0].fields.sections;
+                if (!Array.isArray(sections)) {
+                    response.items[0].fields.sections = [sections]
+                }
+                render_tpl(response.items[0]);
+            })
+            .catch(console.error);
+        </script>
+    </body>
+</html>
