@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: cfuldemo
+  labels:
+    app: cful
+spec:
+  containers:
+  - name: cful-demo-container
+    image: registry.hub.docker.com/mrgeometro/cfuldemo:frist
+    envFrom:
+    - configMapRef:
+        name: contentful-demo-config
+  restartPolicy: OnFailure
