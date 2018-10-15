@@ -32,6 +32,9 @@ spec:
         - containerPort: 80
           protocol: TCP
         resources: {}
+        envFrom:
+        - configMapRef:
+            name: contentful-demo-config
       dnsPolicy: ClusterFirst
       restartPolicy: Always
       schedulerName: default-scheduler
