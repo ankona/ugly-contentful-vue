@@ -3,8 +3,11 @@
     <head>
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
         <title>Contentful Demo App</title>
-        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">        
-        <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">        
+        <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49" crossorigin="anonymous"></script>
+        <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js" integrity="sha384-ChfqqxuZUCnJSK3+MXmPNIyE6ZbWh2IMqE241rYiqJxyMiZ6OW/JmZQ5stwEULTy" crossorigin="anonymous"></script>
+
         <style>
             .ib {
                 border: solid red 1px;
@@ -65,9 +68,14 @@
                         </a>
                     </li>
                 </ul>
-                <div :class="{'tab-content': section.fields.displayStyle=='Tabbed Articles'}">
-                    <cms-article v-for="(article, index) in section.fields.contentItems" :activeTab="activeTab" :displayStyle="section.fields.displayStyle" :index="index" :article="article" :key="article.sys.id"></cms-article>
+                <div v-if="section.fields.displayStyle!='Accordion'" :class="{'tab-content': section.fields.displayStyle=='Tabbed Articles'}">
+                     <cms-article v-for="(article, index) in section.fields.contentItems" :activeTab="activeTab" :displayStyle="section.fields.displayStyle" :index="index" :article="article" :key="article.sys.id"></cms-article>
+                 </div>
+
+                <div v-if="section.fields.displayStyle=='Accordion'" :class="{'tab-content': section.fields.displayStyle=='Tabbed Articles', 'accordion': section.fields.displayStyle=='Accordion'}" id="article_container">
+                    <cms-article-accordion v-for="(article, index) in section.fields.contentItems" :activeTab="activeTab" :displayStyle="section.fields.displayStyle" :index="index" :article="article" :key="article.sys.id"></cms-article-accordion>
                 </div>
+
                 <cms-aside v-for="aside in section.fields.asides" :aside="aside" :key="aside.sys.id"></cms-aside>
             </div>                
         </script>
@@ -91,7 +99,7 @@
                 <div v-if="cards">
                     <table style="width: 400px; border: solid 1px;">
                         <tr style="background: lightslategray;">
-                            <th colspan="2"><h3>{{ article.fields.userFacingTitle }}</h3></th>
+                            <th colspan="2"><h3>{{ article.fields.displayTitle }}</h3></th>
                         </tr><br/>
                         <tr>
                             <td><img width="100px" height="100px" :src="'https://' + article.fields.thumbnail.fields.file.url"/></td>
@@ -103,7 +111,7 @@
                     <div v-if="showDetails" v-html="converter.makeHtml(article.fields.content)"></div>
                 </div>
                 <div v-if="tabbed" :id="'article_' + article.sys.id" :style="{ display: displayClass()}">
-                    <h3>{{ article.fields.userFacingTitle }}</h3>
+                    <h3>{{ article.fields.displayTitle }}</h3>
                     <div v-bind:key="article.sys.id">
                         <div v-html="converter.makeHtml(article.fields.content)"></div>
                     </div>
@@ -111,6 +119,26 @@
             </div>
         </script>
         <!-- Article Template End-->
+
+
+        <!-- ACCORDION Article Template Begin -->
+        <script id="tpl_article_accordion">
+            <div class="card">
+                <div class="card-header" :id="'heading_'+article.sys.id">
+                    <h5 class="mb-0">
+                        <button :class="{btn:true,'btn-link':true,collapsed:true}" type="button" data-toggle="collapse" :data-target="'#collapse_'+article.sys.id" :aria-expanded="first() ? 'true' : 'false'" :aria-controls="'collapse_'+article.sys.id">
+                            {{ article.fields.displayTitle }}
+                        </button>
+                    </h5>
+                </div>
+
+                <div :id="'collapse_'+article.sys.id" :class="{collapse:true, show:false}" :aria-labelledby="'heading_'+article.sys.id" data-parent="#article_container">
+                    <div class="card-body" v-html="converter.makeHtml(article.fields.content)">
+                    </div>
+                </div>
+            </div>            
+        </script>                
+        <!-- ACCORDION Article Template End-->
 
 
 
@@ -165,14 +193,58 @@
                 return { converter: new showdown.Converter(), activeTab: 0 }
             },
             computed: {
+                stacked: function() {
+                    return this.displayStyle == "Stacked Articles";
+                },
+                cards: function() {
+                    return this.displayStyle == "Card View";
+                },
                 tabbed: function() {
-                    return this.article.displayStyle == "Tabbed Articles";
+                    return this.displayStyle == "Tabbed Articles";
                 }
             },
             methods: {
                 
             }
         });
+
+
+
+        Vue.component('cms-article-accordion', {
+            props: ['article', 'index', 'displayStyle', 'activeTab'],
+            template: '#tpl_article_accordion',
+            data: function() {
+                return { converter: new showdown.Converter(), showDetails: false } 
+            },
+            computed: {
+                stacked: function() {
+                    return this.displayStyle == "Stacked Articles";
+                },
+                cards: function() {
+                    return this.displayStyle == "Card View";
+                },
+                tabbed: function() {
+                    return this.displayStyle == "Tabbed Articles";
+                },
+                accordion: function() {
+                    return this.displayStyle == "Accordion";
+                }
+                
+            },
+            methods: {
+                displayClass: function() {
+                    console.log('displayClass. this.index: ' + this.index + ', this.activeTab: ' + this.activeTab);
+                    return (this.index == this.activeTab) ? 'block' : 'none';
+                },
+                first: function() {
+                    return (this.index == 0);
+                }
+            }
+        });
+
+
+
+
 
         Vue.component('cms-article', {
             props: ['article', 'index', 'displayStyle', 'activeTab'],
@@ -189,12 +261,19 @@
                 },
                 tabbed: function() {
                     return this.displayStyle == "Tabbed Articles";
+                },
+                accordion: function() {
+                    return this.displayStyle == "Accordion";
                 }
+                
             },
             methods: {
                 displayClass: function() {
                     console.log('displayClass. this.index: ' + this.index + ', this.activeTab: ' + this.activeTab);
                     return (this.index == this.activeTab) ? 'block' : 'none';
+                },
+                first: function() {
+                    return (this.index == 0);
                 }
             }
         });
