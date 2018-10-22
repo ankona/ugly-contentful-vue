@@ -1,5 +1,5 @@
-from os import environ
-from flask import Flask, render_template
+from os import environ, path
+from flask import Flask, render_template, send_from_directory
 
 class CustomFlask(Flask):
     jinja_options = Flask.jinja_options.copy()
@@ -8,6 +8,11 @@ class CustomFlask(Flask):
         "variable_end_string": "]]"
     })
 app = CustomFlask(__name__)
+
+@app.route('/favicon.ico')
+def favicon():
+    return send_from_directory(path.join(app.root_path, 'static'),
+                               'favicon.ico', mimetype='image/vnd.microsoft.icon')
 
 @app.route("/")
 def index():
