@@ -48,99 +48,90 @@
         <script id="tpl_page">
             <div>
                 <h1>{{ page.fields.userFacingTitle }}</h1>  
-                <cms-section v-for="section in sections" :section="section" v-bind:key="section.sys.id"></cms-section>
+                <cms-section v-for="(section, sectionIndex) in sections" :section="section" v-bind:key="section.sys.id"></cms-section>
             </div>
         </script>
         <!-- CmsPage Template End-->
 
 
-
-
         <!-- Section Template Begin -->
         <script id="tpl_section">
-            <div>
-                <!--<h2>{{ section.fields.userFacingTitle }}</h2>-->
+            <div class="container-fluid">
                 <hr/>
-                <ul class="nav nav-tabs" id="articleTabs" v-if="section.fields.displayStyle=='Tabbed Articles'">
-                    <li class="nav-item" v-for="(article, index) in section.fields.contentItems">
-                        <a :class="{ 'nav-link': true, active:activeTab == index }" v-on:click="activeTab=index" :id="'article_tab_' + article.sys.id" :href="'#article_' + article.sys.id">
-                            {{article.fields.displayTitle}}
-                        </a>
-                    </li>
-                </ul>
-                <div v-if="section.fields.displayStyle!='Accordion'" :class="{'tab-content': section.fields.displayStyle=='Tabbed Articles'}">
-                     <cms-article v-for="(article, index) in section.fields.contentItems" :activeTab="activeTab" :displayStyle="section.fields.displayStyle" :index="index" :article="article" :key="article.sys.id"></cms-article>
-                 </div>
-
-                <div v-if="section.fields.displayStyle=='Accordion'" :class="{'tab-content': section.fields.displayStyle=='Tabbed Articles', 'accordion': section.fields.displayStyle=='Accordion'}" id="article_container">
-                    <cms-article-accordion v-for="(article, index) in section.fields.contentItems" :activeTab="activeTab" :displayStyle="section.fields.displayStyle" :index="index" :article="article" :key="article.sys.id"></cms-article-accordion>
+                <div :class="{row:section.fields.displayStyle=='Card View'}">
+                    <div v-for="(article, contentIndex) in section.fields.contentItems">
+                        <div v-if="section.fields.displayStyle=='Stacked Articles'" id="article_container">
+                            <cms-article-stacked :index="contentIndex" :article="article" :key="article.sys.id"></cms-article-stacked>
+                        </div>
+                        <div v-if="section.fields.displayStyle=='Card View'" :displayStyle="section.fields.displayStyle" id="article_container">
+                            <cms-article-cards :activeTab="activeTab" :index="contentIndex" :article="article" :key="article.sys.id" :elt="'#cv_title_'+section.sys.id" :el="'#cv_'+section.sys.id"></cms-article-cards>
+                        </div>
+                        <div v-if="section.fields.displayStyle=='Accordion'" class="accordion" id="article_container">
+                            <cms-article-accordion :activeTab="activeTab" :index="contentIndex" :article="article" :key="article.sys.id"></cms-article-accordion>
+                        </div>
+                    </div>
+                    <div v-if="section.fields.asides != null && section.fields.asides.length>0">
+                        <cms-aside v-for="aside in section.fields.asides" :aside="aside" :key="aside.sys.id"></cms-aside>
+                    </div>
                 </div>
-
-                <cms-aside v-for="aside in section.fields.asides" :aside="aside" :key="aside.sys.id"></cms-aside>
-            </div>                
+                <div v-if="section.fields.displayStyle=='Card View'">
+                    <a name="card-details"></a>
+                    <h3 :id="'cv_title_'+section.sys.id"></h3>
+                    <div :id="'cv_'+section.sys.id"></div>
+                </div>
+            </div>
         </script>
         <!-- Section Template End-->
 
 
-
-
-
-
-
-        <!-- Article Template Begin -->
-        <script id="tpl_article">
-            <div>
-                <div v-if="stacked" class="ib w70">
-                    <h3>{{ article.fields.userFacingTitle }}</h3>
-                    <div v-bind:key="article.sys.id">
-                        <div v-html="converter.makeHtml(article.fields.content)"></div>
-                    </div>
+        <!-- STACKED Article Template Begin -->
+        <script id="tpl_article_stacked">
+            <div class="ib ">
+                <h3>{{ article.fields.userFacingTitle }}</h3>
+                <div v-bind:key="article.sys.id">
+                    <div v-html="converter.makeHtml(article.fields.content)"></div>
                 </div>
-                <div v-if="cards">
-                    <table style="width: 400px; border: solid 1px;">
-                        <tr style="background: lightslategray;">
-                            <th colspan="2"><h3>{{ article.fields.displayTitle }}</h3></th>
-                        </tr><br/>
-                        <tr>
-                            <td><img width="100px" height="100px" :src="'https://' + article.fields.thumbnail.fields.file.url"/></td>
-                            <td v-html="article.fields.summary"></td>
-                            <button v-on:click="showDetails = !showDetails">Show Full Article</button>
-                        </tr>
-                    </table>
-                    <!-- this div needs to be a modal -->
-                    <div v-if="showDetails" v-html="converter.makeHtml(article.fields.content)"></div>
-                </div>
-                <div v-if="tabbed" :id="'article_' + article.sys.id" :style="{ display: displayClass()}">
-                    <h3>{{ article.fields.displayTitle }}</h3>
-                    <div v-bind:key="article.sys.id">
-                        <div v-html="converter.makeHtml(article.fields.content)"></div>
+            </div>
+        </script>
+        <!-- STACKED Article Template End-->
+
+
+        <!-- CARDS Article Template Begin -->
+        <script id="tpl_article_cards">
+            <div class="col-sm">
+                <div class="card" style="width: 18rem;">
+                    <img class="card-img-top" v-if="article.fields.thumbnail != null" width="100px" height="100px" :src="'https://' + article.fields.thumbnail.fields.file.url" />
+                    <div class="card-body">
+                        <h3 class="card-title">{{ article.fields.userFacingTitle }}</h3>
+                        <p class="card-text">{{article.fields.summary}}</p>
+                        <a class="btn btn-primary" href="#" v-on:click="setTarget()">Read more...</a>
                     </div>
                 </div>
             </div>
         </script>
-        <!-- Article Template End-->
+        <!-- CARDS Article Template End-->
+        <!--
+            <td><img width="100px" height="100px" :src="'https://' + article.fields.thumbnail.fields.file.url"/></td>
+        -->
 
 
         <!-- ACCORDION Article Template Begin -->
         <script id="tpl_article_accordion">
-            <div class="card">
+            <div class="card" :index="this.index">
                 <div class="card-header" :id="'heading_'+article.sys.id">
                     <h5 class="mb-0">
-                        <button :class="{btn:true,'btn-link':true,collapsed:true}" type="button" data-toggle="collapse" :data-target="'#collapse_'+article.sys.id" :aria-expanded="first() ? 'true' : 'false'" :aria-controls="'collapse_'+article.sys.id">
-                            {{ article.fields.displayTitle }}
+                        <button :class="{btn:true,'btn-link':true,collapsed:!is_active()}" type="button" data-toggle="collapse" :data-target="'#collapse_'+article.sys.id" :aria-expanded="is_active()?'true':'false'" :aria-controls="'collapse_'+article.sys.id">
+                            {{ article.fields.userFacingTitle }}
                         </button>
                     </h5>
                 </div>
-
-                <div :id="'collapse_'+article.sys.id" :class="{collapse:true, show:false}" :aria-labelledby="'heading_'+article.sys.id" data-parent="#article_container">
+                <div :id="'collapse_'+article.sys.id" :class="{collapse:!is_active(), show:is_active()}" :aria-labelledby="'heading_'+article.sys.id" data-parent="#article_container">
                     <div class="card-body" v-html="converter.makeHtml(article.fields.content)">
                     </div>
                 </div>
-            </div>            
-        </script>                
+            </div>
+        </script>
         <!-- ACCORDION Article Template End-->
-
-
 
 
         <!-- Aside Template Begin -->
@@ -172,7 +163,6 @@
         });
 
 
-
         Vue.component('cms-page', {
             props: ['page'],
             template: '#tpl_page',
@@ -183,7 +173,6 @@
                 
             }
         });
-
 
 
         Vue.component('cms-section', {
@@ -199,37 +188,25 @@
                 cards: function() {
                     return this.displayStyle == "Card View";
                 },
-                tabbed: function() {
-                    return this.displayStyle == "Tabbed Articles";
+                accordion: function() {
+                    return this.displayStyle == "Accordion";
                 }
             },
             methods: {
-                
+                rowPerItem: function() {
+                    //
+                }
             }
         });
-
 
 
         Vue.component('cms-article-accordion', {
             props: ['article', 'index', 'displayStyle', 'activeTab'],
             template: '#tpl_article_accordion',
             data: function() {
-                return { converter: new showdown.Converter(), showDetails: false } 
+                return { converter: new showdown.Converter()} 
             },
             computed: {
-                stacked: function() {
-                    return this.displayStyle == "Stacked Articles";
-                },
-                cards: function() {
-                    return this.displayStyle == "Card View";
-                },
-                tabbed: function() {
-                    return this.displayStyle == "Tabbed Articles";
-                },
-                accordion: function() {
-                    return this.displayStyle == "Accordion";
-                }
-                
             },
             methods: {
                 displayClass: function() {
@@ -238,34 +215,21 @@
                 },
                 first: function() {
                     return (this.index == 0);
+                },
+                is_active: function() {
+                    return (this.index == this.activeTab) ? true : false;
                 }
             }
         });
 
 
-
-
-
-        Vue.component('cms-article', {
-            props: ['article', 'index', 'displayStyle', 'activeTab'],
-            template: '#tpl_article',
+        Vue.component('cms-article-cards', {
+            props: ['article', 'index', 'activeTab', 'el', 'elt'],
+            template: '#tpl_article_cards',
             data: function() {
-                return { converter: new showdown.Converter(), showDetails: false } 
+                return { converter: new showdown.Converter()} 
             },
             computed: {
-                stacked: function() {
-                    return this.displayStyle == "Stacked Articles";
-                },
-                cards: function() {
-                    return this.displayStyle == "Card View";
-                },
-                tabbed: function() {
-                    return this.displayStyle == "Tabbed Articles";
-                },
-                accordion: function() {
-                    return this.displayStyle == "Accordion";
-                }
-                
             },
             methods: {
                 displayClass: function() {
@@ -274,9 +238,34 @@
                 },
                 first: function() {
                     return (this.index == 0);
+                },
+                setTarget: function() {
+                    $(this.elt).html(this.converter.makeHtml(this.article.fields.userFacingTitle));
+                    $(this.el).html(this.converter.makeHtml(this.article.fields.content));
                 }
             }
         });
+
+
+        Vue.component('cms-article-stacked', {
+            props: ['article', 'index'],
+            template: '#tpl_article_stacked',
+            data: function() {
+                return { converter: new showdown.Converter() } 
+            },
+            computed: {
+            },
+            methods: {
+                // displayClass: function() {
+                //     console.log('displayClass. this.index: ' + this.index + ', this.activeTab: ' + this.activeTab);
+                //     return (this.index == this.activeTab) ? 'block' : 'none';
+                // },
+                // first: function() {
+                //     return (this.index == 0);
+                // }
+            }
+        });
+
 
 
 
@@ -297,14 +286,8 @@
 
 
 
-
-
-
-
         /*
-
             !!!SET THE TEST DATA TARGET SLUG HERE!!!
-
         */
         var urlParams = new URLSearchParams(window.location.search);
         var contentId = '1';

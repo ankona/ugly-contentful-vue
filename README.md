@@ -6,6 +6,9 @@ The focus is the "Article" content type and demonstrates three different ways of
 ## Add Cluster Information To K8S config
 - aws eks update-kubeconfig --name cluster_name
 
+## Build Image
+- docker build . -t cfuldemo (or use dockerhub automated build)
+
 ## Deploy To K8s
 - kubectl create -f <your-config-map> (not provided.)
 - kubectl create -f pod.yaml
