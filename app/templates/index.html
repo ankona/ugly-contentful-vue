@@ -181,7 +181,7 @@
             props: ['section'],
             template: '#tpl_section',
             data: function() {
-                return { converter: new showdown.Converter(), activeTab: 0 }
+                return { converter: new showdown.Converter({tables:true}), activeTab: 0 }
             },
             computed: {
                 stacked: function() {
